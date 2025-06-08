@@ -126,4 +126,4 @@ Suggestions for improvement include:
 
 ---
 
-MIT License · No external dependencies · 100% Offline
+MIT License
