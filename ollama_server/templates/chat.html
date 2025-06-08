@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Offline AI Assistant</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 240px;
+            background: #2c3e50;
+            color: white;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        .sidebar h2 {
+            font-size: 1.2em;
+            margin-top: 0;
+        }
+
+        .sidebar form {
+            margin-bottom: 1rem;
+        }
+
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #ecf0f1;
+        }
+
+        .chat-window {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+        }
+
+        .message.user {
+            text-align: right;
+        }
+
+        .message.bot {
+            text-align: left;
+        }
+
+        .message p {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            max-width: 70%;
+        }
+
+        .user p {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .bot p {
+            background-color: #bdc3c7;
+        }
+
+        .input-area {
+            display: flex;
+            padding: 1rem;
+            background: white;
+            border-top: 1px solid #ccc;
+        }
+
+        .input-area input[type="text"],
+        .input-area input[type="file"] {
+            flex: 1;
+            margin-right: 1rem;
+            padding: 0.5rem;
+        }
+
+        .input-area button {
+            padding: 0.5rem 1rem;
+        }
+
+        .streaming-response {
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Dataset Controls</h2>
+
+        <form action="/train" method="post" enctype="multipart/form-data">
+            <input name="file" type="file" accept=".pdf,.txt,.csv" required />
+            <button type="submit">Upload Dataset</button>
+        </form>
+
+        <form action="/purge" method="post">
+            <input name="dataset" type="text" placeholder="dataset to purge" required />
+            <button type="submit">Purge Dataset</button>
+        </form>
+
+        <h3>Active Datasets</h3>
+        <ul>
+            {% for ds, count in datasets %}
+                <li>{{ ds }} ({{ count }} chunks)</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="main">
+        <div class="chat-window" id="chat-window">
+            <!-- Chat messages will be appended here -->
+        </div>
+
+        <form class="input-area" id="chat-form">
+            <input type="text" id="question" name="question" placeholder="Ask something..." required />
+            <input type="text" id="dataset" name="dataset" placeholder="dataset (optional)" />
+            <button type="submit">Send</button>
+        </form>
+    </div>
+
+    <script>
+        const form = document.getElementById("chat-form");
+        const chatWindow = document.getElementById("chat-window");
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const question = document.getElementById("question").value;
+            const dataset = document.getElementById("dataset").value;
+
+            // Display user message
+            const userDiv = document.createElement("div");
+            userDiv.className = "message user";
+            userDiv.innerHTML = `<p>${question}</p>`;
+            chatWindow.appendChild(userDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+
+            // Streaming response container
+            const botDiv = document.createElement("div");
+            botDiv.className = "message bot";
+            const p = document.createElement("p");
+            p.className = "streaming-response";
+            p.textContent = "Thinking...";
+            botDiv.appendChild(p);
+            chatWindow.appendChild(botDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+
+            // Fetch stream
+            const response = await fetch("/ask_stream", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ question, dataset })
+            });
+
+            if (!response.body) {
+                p.textContent = "[No response from server]";
+                return;
+            }
+
+            p.textContent = "";
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                p.textContent += decoder.decode(value);
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+            }
+        });
+    </script>
+</body>
+</html>

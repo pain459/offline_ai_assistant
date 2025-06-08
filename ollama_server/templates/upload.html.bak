@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Offline AI Assistant - Train</title>
+</head>
+<body>
+    <h2>Upload File to Train</h2>
+    <form action="/train" enctype="multipart/form-data" method="post">
+        <input name="file" type="file" accept=".txt,.pdf,.csv"/>
+        <button type="submit">Train</button>
+    </form>
+
+    {% if message %}
+        <p style="color: green;">{{ message }}</p>
+    {% endif %}
+    {% if error %}
+        <p style="color: red;">Error: {{ error }}</p>
+    {% endif %}
+
+    <h2>Ask a Question</h2>
+    <form action="/ask" method="post">
+        <input name="question" type="text" placeholder="Ask something..." style="width: 300px;" required />
+        <input name="dataset" type="text" placeholder="(Optional) dataset name" style="width: 200px;" />
+        <button type="submit">Ask</button>
+    </form>
+
+    {% if question %}
+        <p><strong>Q:</strong> {{ question }}</p>
+        {% if dataset %}
+            <p><strong>Dataset:</strong> {{ dataset }}</p>
+        {% endif %}
+    {% endif %}
+    {% if answer %}
+        <p><strong>Answer:</strong> {{ answer }}</p>
+    {% endif %}
+
+    {% if datasets %}
+        <h3>Available Datasets</h3>
+        <ul>
+        {% for ds, count in datasets %}
+            <li><strong>{{ ds }}</strong> — {{ count }} chunks</li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+
+    <h2>Purge Dataset</h2>
+    <form action="/purge" method="post">
+        <input name="dataset" type="text" placeholder="Enter dataset name to purge" style="width: 300px;" required />
+        <button type="submit" onclick="return confirm('Are you sure you want to permanently delete this dataset?')">Purge</button>
+    </form>
+
+    <h2>Ask a Question (Streaming)</h2>
+    <form id="stream-form">
+        <input name="question" id="stream-question" type="text" placeholder="Ask something..." style="width: 300px;" required />
+        <input name="dataset" id="stream-dataset" type="text" placeholder="Dataset name" style="width: 200px;" />
+        <button type="submit">Ask (Stream)</button>
+    </form>
+    <pre id="stream-output" style="background:#f9f9f9; padding: 10px; border: 1px solid #ccc; margin-top: 10px;"></pre>
+
+    <script>
+    document.getElementById("stream-form").addEventListener("submit", async function (e) {
+        e.preventDefault();
+        const question = document.getElementById("stream-question").value;
+        const dataset = document.getElementById("stream-dataset").value;
+
+        const formData = new FormData();
+        formData.append("question", question);
+        formData.append("dataset", dataset);
+
+        const output = document.getElementById("stream-output");
+        output.textContent = "Thinking...\n";
+
+        const response = await fetch("/ask_stream", {
+            method: "POST",
+            body: formData
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            output.textContent += decoder.decode(value);
+        }
+    });
+    </script>
+
+</body>
+</html>

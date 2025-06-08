@@ -1,0 +1,9 @@
+default:
+  num_predict: 4096  # Default for all datasets
+
+datasets:
+  data_heavy_1:
+    num_predict: 8192
+
+  data_summary_small:
+    num_predict: 1024
