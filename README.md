@@ -1,264 +1,129 @@
-````markdown
 # 🧠 Offline AI Assistant
 
-A **fully offline AI assistant** that lets you upload your own files—PDFs, CSVs, TXT, etc.—and ask intelligent questions about them using a locally running LLM like **LLaMA3** (via [Ollama](https://ollama.com)).
+The **Offline AI Assistant** is a self-hosted, privacy-first tool that allows you to upload files like **PDF, CSV, TXT, Excel**, and **ask questions** about them using a local LLM such as **LLaMA3 via Ollama** — all without internet access.
 
-No cloud. No subscriptions. No data leaving your machine.
-
----
-
-## ✅ Why Use This?
-
-- 🔐 **Your data stays local** – zero risk of leaks
-- 🆓 **Completely free** – no API costs or token limits
-- ⚡ **Boot when needed** – start/stop with Docker Compose
-- 📄 **Ask anything about your files** – document Q&A made simple
-- 🐳 **Runs in Docker** – portable, secure, and isolated
+There’s no data going to the cloud, no subscriptions, and no cost. Just **boot it up when you need**, upload a file, and start querying it from your browser.
 
 ---
 
-## 🚀 Quick Start
+### ⚙️ Core Logic
 
-### 1. Clone the Repository
+1. **Upload** a file using the web form (`chat.html`)
+2. File is **split into chunks**, embedded, and stored under `/data/<dataset_name>/` using FAISS.
+3. When a question is asked:
+   - Relevant context is fetched via **semantic vector search**
+   - A prompt is built combining context + question
+   - It is sent to **Ollama**, which responds with the answer
 
-```bash
-git clone https://github.com/your-org/offline_ai_assistant.git
-cd offline_ai_assistant
-````
-
-### 2. Start with Docker
-
-```bash
-docker-compose up --build
-```
-
-> This launches:
->
-> * FastAPI backend
-> * Ollama model container (e.g., LLaMA3)
-
----
-
-## 🌐 Access the Web Interface
-
-Visit:
-
-```
-http://localhost:8000
-```
-
-From there, you can:
-
-* 📁 Upload a file (PDF, CSV, TXT, etc.)
-* ❓ Ask questions about its contents
-* 🧹 Purge datasets anytime
-
----
-
-## 🧩 System Design Diagram
-
-```
-              ┌─────────────────────────────┐
-              │         Web UI              │
-              │   (chat.html via FastAPI)   │
-              └────────────┬────────────────┘
-                           │
-          ┌────────────────▼────────────────┐
-          │            FastAPI              │
-          │            main.py              │
-          └────────────────┬────────────────┘
-                           │
-         ┌─────────────────┼────────────────────┐
-         │                 │                    │
-         ▼                 ▼                    ▼
- ┌────────────┐   ┌────────────────────┐  ┌──────────────────┐
- │  train.py  │   │     query.py       │  │ config_loader.py │
- │ (vectorize)│   │ (semantic search + │  │  (settings like  │
- │            │   │   LLM interaction) │  │   token limits)  │
- └────┬───────┘   └──────────┬─────────┘  └──────────────────┘
-      │                     │
-      ▼                     ▼
-┌──────────────┐     ┌──────────────┐
-│ /data folder │     │   Ollama     │
-│(dataset store│     │(LLM service) │
-│  on disk)    │     └──────────────┘
-└──────────────┘
-```
-
----
-
-## 🔄 Data Flow Diagram
-
-```
-                 User
-                  │
-                  ▼
-        ┌──────────────────┐
-        │ Upload a File    │
-        │ (via chat.html)  │
-        └────────┬─────────┘
-                 │
-                 ▼
-        ┌────────────────────┐
-        │ FastAPI `/upload`  │
-        └────────┬───────────┘
-                 ▼
-        ┌────────────────────┐
-        │    train.py        │
-        │ - Parse file       │
-        │ - Embed with model │
-        │ - Store in /data   │
-        └────────┬───────────┘
-                 │
-                 ▼
-        ┌────────────────────┐
-        │ Ask a Question     │
-        │ (via chat.html)    │
-        └────────┬───────────┘
-                 ▼
-        ┌────────────────────┐
-        │ FastAPI `/query`   │
-        └────────┬───────────┘
-                 ▼
-        ┌────────────────────┐
-        │   query.py         │
-        │ - Search vectors   │
-        │ - Select context   │
-        └────────┬───────────┘
-                 ▼
-        ┌────────────────────┐
-        │     Ollama         │
-        │  (e.g., LLaMA3)    │
-        └────────┬───────────┘
-                 ▼
-        ┌────────────────────┐
-        │ Return Answer      │
-        │ (stream to UI)     │
-        └────────────────────┘
-```
-
----
-
-## 🧰 Low-Level Design
-
-### 📁 Folder Structure
-
-```
-offline_ai_assistant/
-├── main.py                # FastAPI app with routes
-├── train.py               # Embeds uploaded files
-├── query.py               # Performs vector search + LLM prompt
-├── config_loader.py       # Token config loader
-├── requirements.txt       # Python dependencies
-├── Dockerfile             # FastAPI build config
-├── docker-compose.yml     # Orchestrates API + Ollama
-├── templates/
-│   └── chat.html          # Minimal web UI
-├── data/
-│   └── <dataset_name>/    # Vector storage
-```
+All processing happens **entirely locally** using FastAPI and Ollama.
 
 ---
 
 ### 🔌 API Endpoints
 
-| Method | Endpoint    | Description             |
-| ------ | ----------- | ----------------------- |
-| GET    | `/`         | UI home page            |
-| POST   | `/upload`   | Train on uploaded file  |
-| POST   | `/query`    | Ask a question          |
-| POST   | `/purge`    | Remove dataset          |
-| GET    | `/datasets` | List available datasets |
+| Method | Endpoint      | Description                          |
+|--------|---------------|--------------------------------------|
+| GET    | `/`           | Load the HTML-based UI               |
+| POST   | `/upload`     | Upload and train on a new file       |
+| POST   | `/query`      | Ask a question on a trained dataset  |
+| POST   | `/purge`      | Delete a dataset                     |
+| GET    | `/datasets`   | Get list of available datasets       |
 
 ---
 
-### 🧠 Core Logic
+### 🚀 Usage
 
-**Embedding Flow** (`train.py`)
+1. **Clone the project**
 
-```python
-def process_file(file, dataset_name):
-    chunks = split_file_into_chunks(file)
-    embeddings = model.encode(chunks)
-    save_as_faiss(embeddings, dataset_name)
+```bash
+git clone https://github.com/pain459/offline_ai_assistant.git
+cd offline_ai_assistant
 ```
 
-**Query Flow** (`query.py`)
+2. **Boot with Docker**
 
-```python
-def search_and_respond(dataset, question):
-    context = top_k_similar_chunks(question, dataset)
-    prompt = f"{context}\n\nQ: {question}"
-    return query_ollama(prompt)
+```bash
+docker-compose up --build
 ```
 
-**Ollama Streaming**
+3. **Visit the UI**
 
-```python
-def query_ollama(prompt):
-    yield from requests.post("http://ollama:11434/api/generate", json={
-        "model": "llama3",
-        "prompt": prompt,
-        "stream": True
-    }, stream=True).iter_lines()
-```
+Go to: [http://localhost:8000](http://localhost:8000)
 
----
+- Upload a file (e.g., `.pdf`)
+- Select the dataset
+- Ask your question
+- View AI-generated answers based only on your file
 
-## 📄 Supported File Types
-
-* `.pdf`
-* `.txt`
-* `.csv`
-* `.xlsx`
-* `.json`
-
-You can extend file handling in `train.py`.
+4. **Remove datasets** using the "Purge Dataset" option
 
 ---
 
-## 🧹 Remove Dataset
+### 📄 Supported File Types
 
-Use the “Purge Dataset” button or call the `/purge` endpoint to delete a dataset folder from `/data/`.
+- `.pdf`
+- `.txt`
+- `.csv`
+- `.xlsx`
+- `.json`
 
----
-
-## 🛠 Requirements
-
-* Docker + Docker Compose
-* 8GB+ RAM (16GB recommended)
-* GPU support optional (Ollama supports CUDA & Apple Metal)
+Extendable via `train.py`.
 
 ---
 
-## 📈 Scalability Notes
+### 🖥 Requirements
 
-| Area         | Future Ideas                                       |
-| ------------ | -------------------------------------------------- |
-| UI           | Add streaming, markdown, and chat history          |
-| Persistence  | Use SQLite or LiteDB to track session logs         |
-| Vector Store | Swap FAISS with Qdrant/Weaviate for production use |
-| Auth         | Add basic token auth for multi-user access         |
-| Model        | Swap Ollama for LM Studio, llama.cpp, or local API |
+- Docker + Docker Compose
+- At least 8GB RAM (16GB+ recommended for larger files/models)
+- Optional GPU (CUDA or Apple Silicon supported by Ollama)
 
 ---
 
-## 🙌 Contributing
+### 📈 Scalability Notes
 
-1. Fork the repo
-2. Create your branch
-3. Submit a PR
+- You can extend the assistant with:
+  - ✅ Auth for private access
+  - ✅ Streaming Markdown UI
+  - ✅ Replace FAISS with Weaviate/Qdrant for production search
+  - ✅ Add persistent SQLite logs
+  - ✅ Deploy on local network with port exposure
 
-Open to improvements in:
+This setup is designed to remain **lightweight and fast** while remaining private and offline.
 
-* File parsing
-* Model routing
-* UI enhancements
+---
+
+### 🚧 Current State of the Project
+
+This project is currently in an **alpha** state and under active development. Here are a few notes to set expectations:
+
+1. **Codebase is still evolving**  
+   There are areas that need cleanup and refactoring. Please avoid judging the structure or code quality just yet.
+
+2. **Documentation and comments are being added**  
+   We're working on improving inline comments and adding clearer explanations throughout the code.
+
+3. **UI is functional but minimal**  
+   The current user interface is basic and serves the core functionality. It will be improved in upcoming updates.
+
+4. **Hardcoded values exist**  
+   Some parts of the code use hardcoded values. These will be made configurable as development progresses.
 
 ---
 
-## 📜 License
+### 🤝 Contribution
 
-MIT License. See `LICENSE`.
+Welcome to contributions!
+
+1. Fork this repository
+2. Create a new feature branch
+3. Submit a pull request
+
+Suggestions for improvement include:
+- Advanced file parsing (tables, scanned PDFs)
+- Multiple file training
+- File comparison Q&A
+- Multilingual support
 
 ---
+
+MIT License · No external dependencies · 100% Offline
