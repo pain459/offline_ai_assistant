@@ -3,10 +3,14 @@ FROM python:3.10-slim
 WORKDIR /app
 
 # Copy only requirements first to leverage Docker cache
-COPY requirements.txt .
+# COPY requirements.txt .
+# Copying .lock file generated from my production environment. This step is to ensure reproducability in case of debugging.
+COPY requirements.lock .
 
 # Install dependencies (cached unless requirements.txt changes)
-RUN pip install --no-cache-dir -r requirements.txt
+# RUN pip install --no-cache-dir -r requirements.txt
+# Adjusted the file to maintain uniformity. 
+RUN pip install --no-cache-dir -r requirements.lock
 
 # copy app code, templates, and static assets
 COPY app/ ./app/
