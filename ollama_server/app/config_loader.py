@@ -1,12 +1,12 @@
-import yaml
-import os
-
 """
 Purpose:
 This module loads prediction configuration from `config.yaml` and exposes
 a utility function `get_num_predict_for()` to retrieve the `num_predict` value
 (i.e., maximum number of tokens to generate) for a given dataset.
 """
+
+import yaml
+import os
 
 # Get the absolute path to the current file's directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

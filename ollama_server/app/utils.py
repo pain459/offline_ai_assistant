@@ -5,6 +5,7 @@ import fitz  # PyMuPDF
 def validate_file_type(file_path: str):
     ext = os.path.splitext(file_path)[1].lower()
     if ext not in [".pdf", ".csv", ".txt"]:
+        # TO-DO: Add logging if the file type is invalid.
         raise Exception(f"Unsupported file type: {ext}")
     return ext
 
