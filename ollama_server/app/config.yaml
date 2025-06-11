@@ -1,9 +1,42 @@
+# Global configuration settings
 default:
+  # Number of tokens to predict if dataset-specific value is not set
   num_predict: 4096  # Default for all datasets
 
+# Dataset-specific overrides
 datasets:
+  # This dataset requires a longer response (large documents, context depth)
   data_heavy_1:
     num_predict: 8192
-
+  
+  # This dataset is optimized for shorter, summary-style responses. 
   data_summary_small:
     num_predict: 1024
+
+# TO-DO: Integrate model, temparature and top_k params and update config_loader.py to support reading and streaming call at main.py to use these options dynamically.
+
+# TO-DO: Sample file for integration of new params.
+
+# default:
+#   num_predict: 4096         # Max number of tokens to generate
+#   model: llama3             # Default model to use
+#   temperature: 0.7          # Controls randomness (0 = deterministic, 1 = very random)
+#   top_k: 50                 # Consider only top_k most likely tokens (0 = disabled)
+
+# # Specific overrides for certain datasets
+# datasets:
+#   # For large datasets requiring detailed or extended output
+#   data_heavy_1:
+#     num_predict: 8192
+#     model: llama3
+#     temperature: 0.6
+#     top_k: 100
+
+#   # For small datasets or summary-focused answers
+#   data_summary_small:
+#     num_predict: 1024
+#     model: llama3
+#     temperature: 0.3
+#     top_k: 20
+
+# TO-DO: Develop dynamic update of config.yaml based on the dataset size. Currently named datasets can get priority per config file.
