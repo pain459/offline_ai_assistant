@@ -7,10 +7,24 @@ import os
 import datetime
 import json
 import requests
+import logging
 
 from app.train import process_file, list_datasets_with_counts, purge_dataset
 from app.query import search_and_respond, search_context_for_prompt
 from app.config_loader import get_num_predict_for
+
+# Startup logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("startup")
+
+def log_cert_info():
+    ssl_cert = os.getenv("SSL_CERT_FILE", "<not set>")
+    requests_ca = os.getenv("REQUESTS_CA_BUNDLE", "<not set>")
+    logger.info(f"SSL_CERT_FILE={ssl_cert}")
+    logger.info(f"REQUESTS_CA_BUNDLE={requests_ca}")
+
+log_cert_info()
 
 # Initialize FastAPI app
 app = FastAPI()
