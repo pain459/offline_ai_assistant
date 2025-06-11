@@ -9,6 +9,14 @@ services:
       - ollama-data:/root/.ollama
       - ./start_ollama.sh:/start_ollama.sh
     entrypoint: ["/bin/sh", "/start_ollama.sh"]
+    deploy:
+      resources:
+        limits:  # hardlimits
+          cpus: "8.0"
+          memory: 12g
+        reservations:  # softlimits
+          cpus: "4.0"
+          memory: 10g
 
   api:
     build: ./ollama_server
@@ -18,6 +26,14 @@ services:
       - ollama
     environment:
       - OLLAMA_HOST=http://ollama:11434
+    deploy:
+      resources:
+        limits:  # hardlimits
+          cpus: "1.0"
+          memory: 2g
+        reservations:  # softlimits
+          cpus: "0.5"
+          memory: 1g
 
 volumes:
   ollama-data:

@@ -64,7 +64,6 @@ Go to: [http://localhost:8000](http://localhost:8000)
 - `.pdf`
 - `.txt`
 - `.csv`
-- `.xlsx`
 - `.json`
 
 Extendable via `train.py`.

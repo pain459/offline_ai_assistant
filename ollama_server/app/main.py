@@ -1,47 +1,59 @@
 from fastapi import FastAPI, File, UploadFile, Form, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
-import os
-from .train import process_file
-from fastapi import Form
-from .query import search_and_respond
-from pathlib import Path
-from .train import list_datasets_with_counts, purge_dataset
-from fastapi.responses import StreamingResponse
-from .config_loader import get_num_predict_for
-import datetime
 from pydantic import BaseModel
+from pathlib import Path
+import os
+import datetime
+import json
+import requests
+import logging
 
+from app.train import process_file, list_datasets_with_counts, purge_dataset
+from app.query import search_and_respond, search_context_for_prompt
+from app.config_loader import get_num_predict_for
+
+# Startup logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("startup")
+
+def log_cert_info():
+    ssl_cert = os.getenv("SSL_CERT_FILE", "<not set>")
+    requests_ca = os.getenv("REQUESTS_CA_BUNDLE", "<not set>")
+    logger.info(f"SSL_CERT_FILE={ssl_cert}")
+    logger.info(f"REQUESTS_CA_BUNDLE={requests_ca}")
+
+log_cert_info()
+
+# Initialize FastAPI app
 app = FastAPI()
-# templates = Jinja2Templates(directory="templates")
+
+# Set up templates directory
 TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates"
 templates = Jinja2Templates(directory=str(TEMPLATE_DIR))
 
+# Ensuring upload directory exists
 UPLOAD_DIR = "/tmp/uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# @app.get("/", response_class=HTMLResponse)
-# async def index(request: Request):
-#     datasets = list_datasets_with_counts()
-#     return templates.TemplateResponse("chat.html", {
-#         "request": request,
-#         "datasets": datasets
-#     })
-
-
+# Pydantic model for streaming query input
 class StreamQuery(BaseModel):
     question: str
     dataset: str | None = None
 
+# Home page: Render chat interface with available datasets
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
-    from .train import list_datasets_with_counts
+    datasets = list_datasets_with_counts()
     return templates.TemplateResponse("chat.html", {
         "request": request,
-        "datasets": list_datasets_with_counts()
+        "datasets": datasets
     })
 
-
+# Endpoint to upload and train on a new file
+# TO-DO: Return the error if uploaded file is unsupported.
+# TO-DO: Add auto-refresh mechanism once training is completed on a new dataset.
 @app.post("/train")
 async def train(request: Request, file: UploadFile = File(...)):
     try:
@@ -58,6 +70,9 @@ async def train(request: Request, file: UploadFile = File(...)):
             "request": request,
             "error": str(e)
         })
+
+# Endpoint for submitting a question and getting a response
+# TO-DO: Clean the input to avoid non-ascii characters
 @app.post("/ask")
 async def ask_question(request: Request, question: str = Form(...), dataset: str = Form(None)):
     try:
@@ -73,12 +88,15 @@ async def ask_question(request: Request, question: str = Form(...), dataset: str
             "request": request,
             "error": str(e)
         })
+
+# Endpoint to purge (delete) a trained dataset
+# TO-DO: Add a pop-up message feature once the dataset is purged.
 @app.post("/purge")
 async def purge_dataset_handler(request: Request, dataset: str = Form(...)):
     datasets = list_datasets_with_counts()
     try:
         message = purge_dataset(dataset)
-        datasets = list_datasets_with_counts()  # Refresh list after purge
+        datasets = list_datasets_with_counts()  # Refresh after purge
         return templates.TemplateResponse("chat.html", {
             "request": request,
             "message": message,
@@ -91,12 +109,13 @@ async def purge_dataset_handler(request: Request, dataset: str = Form(...)):
             "datasets": datasets
         })
 
+# Streaming API endpoint that uses Ollama for long responses
 @app.post("/ask_stream")
 async def ask_stream(request: StreamQuery):
-    from .query import search_context_for_prompt
     question = request.question
     dataset = request.dataset
 
+    # Get relevant context for question
     context = search_context_for_prompt(question, dataset)
     full_prompt = f"""Use the below context to answer the question.
 Context:
@@ -109,7 +128,7 @@ Question:
     num_predict = get_num_predict_for(dataset or "default")
 
     def generate():
-        import requests
+        # Stream response from Ollama backend
         response = requests.post("http://ollama:11434/api/generate", json={
             "model": "llama3",
             "prompt": full_prompt,
@@ -125,15 +144,15 @@ Question:
                 text = line.decode("utf-8")
                 log_content += text + "\n"
                 try:
-                    import json
                     yield json.loads(text).get("response", "")
                 except Exception:
                     pass
 
-        # Save log
+        # Log the full raw response
         timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-        filename = f"logs/response_{dataset or 'general'}_{timestamp}.log"
-        os.makedirs("logs", exist_ok=True)
+        log_dir = "logs"
+        os.makedirs(log_dir, exist_ok=True)
+        filename = f"{log_dir}/response_{dataset or 'general'}_{timestamp}.log"
         with open(filename, "w") as f:
             f.write(log_content)
 
