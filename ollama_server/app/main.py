@@ -8,9 +8,9 @@ import datetime
 import json
 import requests
 
-from .train import process_file, list_datasets_with_counts, purge_dataset
-from .query import search_and_respond, search_context_for_prompt
-from .config_loader import get_num_predict_for
+from app.train import process_file, list_datasets_with_counts, purge_dataset
+from app.query import search_and_respond, search_context_for_prompt
+from app.config_loader import get_num_predict_for
 
 # Initialize FastAPI app
 app = FastAPI()

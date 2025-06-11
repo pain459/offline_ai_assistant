@@ -2,6 +2,9 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
+# root start location to allow absolute imports.
+ENV PYTHONPATH=/app
+
 # Copy only requirements first to leverage Docker cache
 # COPY requirements.txt .
 # Copying .lock file generated from my production environment. This step is to ensure reproducability in case of debugging.

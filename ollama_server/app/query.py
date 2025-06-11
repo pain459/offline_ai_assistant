@@ -4,7 +4,7 @@ import pickle
 from functools import lru_cache
 from sentence_transformers import SentenceTransformer
 import requests
-from .config_loader import get_num_predict_for
+from app.config_loader import get_num_predict_for
 
 INDEX_FILE = "vector_store.index"
 MAPPING_FILE = "index_mapping.pkl"

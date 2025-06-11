@@ -17,7 +17,7 @@ import pickle
 import faiss
 import logging
 from sentence_transformers import SentenceTransformer
-from .utils import validate_file_type, read_file_content, chunk_text
+from app.utils import validate_file_type, read_file_content, chunk_text
 
 # Configure logging
 logging.basicConfig(
