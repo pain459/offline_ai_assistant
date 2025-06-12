@@ -27,8 +27,10 @@ from functools import lru_cache
 from sentence_transformers import SentenceTransformer
 import requests
 from app.config_loader import get_num_predict_for
+import ssl
 
 # Constants for file paths and model endpoint
+ssl._create_default_https_context = ssl._create_unverified_context  # Allowing insecure comm under proxy envs.
 INDEX_FILE = "vector_store.index"          # FAISS index file containing vectorized document chunks
 MAPPING_FILE = "index_mapping.pkl"         # Pickle file mapping vector positions to original chunks and dataset names
 OLLAMA_URL = "http://ollama:11434/api/generate"  # Local Ollama LLM API endpoint

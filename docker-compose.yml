@@ -26,6 +26,8 @@ services:
       - ollama
     environment:
       - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_NO_TLS_VERIFY=1 # disabling TLS
+      - PYTHONHTTPSVERIFY=0  # disabling TLS
     deploy:
       resources:
         limits:  # hardlimits

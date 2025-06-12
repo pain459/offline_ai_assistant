@@ -18,6 +18,7 @@ import faiss
 import logging
 from sentence_transformers import SentenceTransformer
 from app.utils import validate_file_type, read_file_content, chunk_text
+import ssl
 
 # Configure logging
 logging.basicConfig(
@@ -27,6 +28,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Global settings
+ssl._create_default_https_context = ssl._create_unverified_context  # Allowing insecure comm under proxy envs.
 model = SentenceTransformer("all-MiniLM-L6-v2")  # Balanced speed and performance
 embedding_dim = 384                              # Embedding dimensionality of the model
 index_path = "vector_store.index"                # FAISS index file
