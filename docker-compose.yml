@@ -33,6 +33,7 @@ services:
       # - HF_HUB_DISABLE_SSL_VERIFICATION=1  # Excluding the HF SSL check.
     volumes:
       - ${HOME}/.cache/torch/sentence_transformers:/root/.cache/torch/sentence_transformers
+      # We are assuming you already installed the sentence_transformers library in your local dev environment instead.
     deploy:
       resources:
         limits:  # hardlimits
