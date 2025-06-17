@@ -9,14 +9,16 @@ services:
       - ollama-data:/root/.ollama
       - ./start_ollama.sh:/start_ollama.sh
     entrypoint: ["/bin/sh", "/start_ollama.sh"]
+    environment:
+      - OLLAMA_NO_TLS_VERIFY=1
     deploy:
       resources:
         limits:  # hardlimits
-          cpus: "8.0"
-          memory: 12g
+          cpus: "2.0"
+          memory: 8g
         reservations:  # softlimits
-          cpus: "4.0"
-          memory: 10g
+          cpus: "1.0"
+          memory: 6g
 
   api:
     build: ./ollama_server
@@ -26,14 +28,19 @@ services:
       - ollama
     environment:
       - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_NO_TLS_VERIFY=1 # disabling TLS
+      # - PYTHONHTTPSVERIFY=0  # disabling TLS
+      # - HF_HUB_DISABLE_SSL_VERIFICATION=1  # Excluding the HF SSL check.
+    volumes:
+      - ${HOME}/.cache/torch/sentence_transformers:/root/.cache/torch/sentence_transformers
     deploy:
       resources:
         limits:  # hardlimits
           cpus: "1.0"
-          memory: 2g
+          memory: 4g
         reservations:  # softlimits
           cpus: "0.5"
-          memory: 1g
+          memory: 2g
 
 volumes:
   ollama-data:
