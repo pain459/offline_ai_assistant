@@ -18,6 +18,8 @@ import faiss
 import logging
 from sentence_transformers import SentenceTransformer
 from app.utils import validate_file_type, read_file_content, chunk_text
+import requests
+from functools import partialmethod
 
 # Configure logging
 logging.basicConfig(
@@ -27,7 +29,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Global settings
-model = SentenceTransformer("all-MiniLM-L6-v2")  # Balanced speed and performance
+model = SentenceTransformer("/root/.cache/torch/sentence_transformers/sentence-transformers_all-MiniLM-L6-v2") # Balanced speed and performance
 embedding_dim = 384                              # Embedding dimensionality of the model
 index_path = "vector_store.index"                # FAISS index file
 mapping_path = "index_mapping.pkl"               # Pickled metadata file (chunk, dataset)
