@@ -37,7 +37,7 @@ OLLAMA_URL = "http://ollama:11434/api/generate"  # Local Ollama LLM API endpoint
 # Caches the loaded transformer model in memory.
 @lru_cache()
 def get_model():
-    return SentenceTransformer("all-MiniLM-L6-v2")
+    return SentenceTransformer("/root/.cache/torch/sentence_transformers/sentence-transformers_all-MiniLM-L6-v2")  # We will use local model instead which is installed via pip.
 
 # Caches the FAISS index after first load from disk.
 @lru_cache()
